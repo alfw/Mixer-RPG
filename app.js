@@ -34,7 +34,8 @@ console.log('\033c')
 // Basic app variables used with game.
 rpgApp = {
 	chanID: dbAuth.getData("/channelID"),
-	rpgCommands: "!coins, !rpg-inventory, !rpg-daily, !rpg-adventure (cost: " + dbSettings.getData('/adventure/cost') + "), !rpg-training (cost: 2000) !rpg-arena (bet), !rpg-duel (bet), !rpg-shop, !rpg-shop-refresh (cost: 750)",
+	rpgCommandTrigger: dbSettings.getData("/botTrigger"),
+	rpgCommands: dbSettings.getData("/botTrigger") + "coins, " + dbSettings.getData("/botTrigger") + "rpg-inventory, " +dbSettings.getData("/botTrigger")+"rpg-daily, " + dbSettings.getData("/botTrigger")+"rpg-adventure (cost: " + dbSettings.getData('/adventure/cost') + "), " +dbSettings.getData("/botTrigger")+"rpg-training (cost: 2000) " +dbSettings.getData("/botTrigger")+"rpg-arena (bet), " +dbSettings.getData("/botTrigger")+"rpg-duel (bet), " +dbSettings.getData("/botTrigger")+"rpg-shop, " +dbSettings.getData("/botTrigger")+"rpg-shop-refresh (cost: 750)",
 	raidTimer: dbSettings.getData("/raid/timer"),
 	cmdCooldownActive: false,
 	raidActive: false,
@@ -201,25 +202,25 @@ function checkForCommand(chatEvent) {
 
 	// Get raw chat message.
 	let normalizedRawMessage = getRawChatMessage(chatEvent).toLowerCase();
-
+	console.log(normalizedRawMessage)
 	let allCommands = [
-		"!rpg",
-		"!rpg-equip",
-		"!rpg-inventory",
-		"!rpg-daily",
-		"!rpg-raid",
-		"!rpg-arena",
-		"!rpg-duel",
-		"!rpg-shop",
-		"!rpg-shop-refresh",
-		"!rpg-training",
-		"!rpg-adventure"
+		`rpg`,
+		`rpg-equip`,
+		`rpg-inventory`,
+		`rpg-daily`,
+		`rpg-raid`,
+		`rpg-arena`,
+		`rpg-duel`,
+		`rpg-shop`,
+		`rpg-shop-refresh`,
+		`rpg-training`,
+		`rpg-adventure`
 	];
 
 	for (let command of allCommands) {
 		// regex checks if the character after the command is either whitespace or end of string
 		// this prevents the "!rpg" command from always returning for all commands
-		let regex = new RegExp("^" + command + "(?:\\s|$)");
+		let regex = new RegExp("^" + dbSettings.getData("/botTrigger") + command + "(?:\\s|$)");
 		if (regex.test(normalizedRawMessage)) {
 			console.log('--------------------COMMAND USED-------------------');
 			return command;
@@ -246,10 +247,12 @@ function onChatMessage(data) {
 			isMod: data['user_roles'].includes("Mod") || (data['user_roles'].includes("Owner") ? true : false) ? true : false,
 		},
 		whisper: data.message.meta.whisper,
-		command: command,
+		command: rpgApp.rpgCommandTrigger + command,
 		rawcommand: getRawChatMessage(data),
-		rawData: data
+		rawData: data,
+		messageId: data.id
 	}
+
 	console.log(`MixerRPG: ${playerMessage.user.username} used command ${playerMessage.rawcommand}`);
 
 	if (dbSettings.getData("/requireWhispers") === true && playerMessage.whisper === true) {
@@ -264,36 +267,43 @@ function onChatMessage(data) {
 
 function rpgCommands(message) {
 	// Commands outside of cooldown.
-	if (message.command == "!rpg") {
+	if (message.command == `${dbSettings.getData("/botTrigger")}rpg`) {
 		sendWhisper(message.user.username, `Want to play? Try these commands: ${rpgApp.rpgCommands}.`);
-	} else if (message.command == "!rpg-equip") {
+		deleteMess(message.messageId)
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-equip`) {
 		dbPlayerKeeper(message);
+		deleteMess(message.messageId);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-inventory") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-inventory`) {
 		rpgInventory(message);
+		deleteMess(message.messageId);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-daily") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-daily`) {
 		rpgDailyQuest(message);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-raid") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-raid`) {
 		rpgRaidEvent(message);
+		deleteMess(message.messageId);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-arena") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-arena`) {
 		rpgCompanionDuel(message.user.username, message.user.userid, message.rawcommand);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-duel") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-duel`) {
 		rpgPlayerDuel(message.user.username, message.user.userid, message.rawcommand);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-shop") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-shop`) {
 		rpgShopPurchase(message);
 		dbLastSeen(message.user.userid);
-	} else if (message.command == "!rpg-shop-refresh") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-shop-refresh`) {
 		rpgShopLoop();
+		deleteMess(message.messageId);
 		sendBroadcast('A new travelling salesman has come to town! Type !rpg-shop to see his supply.');
-	} else if (message.command == "!rpg-training") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-training`) {
+		deleteMess(message.messageId);
 		rpgTraining(message);
-	} else if (message.command == "!rpg-adventure") {
+	} else if (message.command == `${dbSettings.getData("/botTrigger")}rpg-adventure`) {
 		rpgAdventure(message.user.username, message.user.userid);
+		deleteMess(message.messageId);
 		dbLastSeen(message.user.userid);
 	}
 }
@@ -305,6 +315,11 @@ function rpgCommands(message) {
 // Whisper
 function sendWhisper(username, message) {
 	socket.call('whisper', [username, message]);
+}
+
+// deleteMessage
+function deleteMess( message) {
+	socket.call('deleteMessage', [message]);
 }
 
 // Chat Broadcast
@@ -815,7 +830,7 @@ function buyMelee(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found a weapon: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found a weapon: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "melee", itemName, strengthStat, guileStat, magicStat);
@@ -834,7 +849,7 @@ function buyRanged(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found a ranged weapon: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found a ranged weapon: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "ranged", itemName, strengthStat, guileStat, magicStat);
@@ -853,7 +868,7 @@ function buyMagic(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You learned a spell: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You learned a spell: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "magic", itemName, strengthStat, guileStat, magicStat);
@@ -872,7 +887,7 @@ function buyArmor(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found armor: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found armor: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "armor", itemName, strengthStat, guileStat, magicStat);
@@ -891,7 +906,7 @@ function buyMount(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found a mount: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found a mount: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "mount", itemName, strengthStat, guileStat, magicStat);
@@ -909,7 +924,7 @@ function buyTitle(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You won a title: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You won a title: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "title", itemName, strengthStat, guileStat, magicStat);
@@ -928,7 +943,7 @@ function buyCompanion(username, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found a companion: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found a companion: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "companion", itemName, strengthStat, guileStat, magicStat);
@@ -959,7 +974,7 @@ function buyTrophy(username, streamerName, userid) {
 
 	// Push info to queue
 	console.log('MixerRPG: ' + username + ' got a ' + itemName + ' (' + strengthStat + '/' + guileStat + '/' + magicStat + ').');
-	sendWhisper(username, "You found a trophy: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type !rpg-equip to use it.");
+	sendWhisper(username, "You found a trophy: " + itemName + " (" + strengthStat + "/" + guileStat + "/" + magicStat + "). Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 
 	// Push to DB
 	dbPlayerHolder(userid, "holding", "trophy", itemName, strengthStat, guileStat, magicStat);
@@ -1310,7 +1325,7 @@ function rpgRaidEvent(message) {
 						var raidWinCoin = dbSettings.getData("/raid/winReward");
 						giveallPoints(raidWinCoin);
 						sendBroadcast(`The raid has ended. The horde has overcome ${raidTarget} and ${luckyPersonName} took a trophy. Everyone also gets ${raidWinCoin} coins!`)
-						sendWhisper(luckyPersonName, `You got a trophy! Type !rpg-equip to use it!`);
+						sendWhisper(luckyPersonName, `You got a trophy! Type ${dbSettings.getData("/botTrigger")}rpg-equip to use it!`);
 					} else {
 						var raidLoseCoin = dbSettings.getData("/raid/loseReward");
 						giveallPoints(raidLoseCoin);
@@ -1804,7 +1819,7 @@ function rpgShopPurchase(message) {
 			if (pointsTotal >= item.price && isNaN(item.price) === false) {
 				// Item Bought
 				console.log(`MixerRPG: Shop: ${message.user.username} has ${pointsTotal} and is spending ${item.price}.'`);
-				sendWhisper(message.user.username, "You bought " + item.itemName + " for " + item.price + " coins. Type !rpg-equip to use it.");
+				sendWhisper(message.user.username, "You bought " + item.itemName + " for " + item.price + " coins. Type "+dbSettings.getData("/botTrigger")+"rpg-equip to use it.");
 				deletePoints(message.user.userid, item.price);
 				dbGame.push("/shop/item" + command + "/price", "sold");
 

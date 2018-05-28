@@ -1,5 +1,6 @@
 {
     "botName": "Firebot",
+    "botTrigger": "#",
     "requireWhispers": false,
     "dailyReward": 500,
     "adventure":{
