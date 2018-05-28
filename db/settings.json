@@ -22,5 +22,9 @@
     },
     "inactive": {
         "timer": 2592000000
+    },
+    "training": {
+        "cost": "100",
+        "active": true
     }
 }
